@@ -112,7 +112,7 @@ export class SocketService {
                   { new: true },
                 );
                 this.logger.debug(`DELETE ${clientData.clientId}} SOCKET`);
-                if (result.clients.length === 0) {
+                if (!result.clients || result.clients.length === 0) {
                   await this.roomModel.deleteOne({ roomId: iterator.roomId });
                   this.logger.debug(`DELETE ${iterator.roomId} ROOM`);
                   continue;

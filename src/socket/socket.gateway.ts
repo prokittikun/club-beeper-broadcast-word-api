@@ -14,6 +14,7 @@ import { SocketService } from './socket.service';
 import { OnModuleInit } from '@nestjs/common';
 import { BasicSocketDto } from './dto/BasicSocketDto';
 import { BroadcastSocketDto } from './dto/BroadcastSocketDto';
+import { GameHostService } from './../game-host/game-host.service';
 
 @WebSocketGateway({
   // transports: ['websocket'],
@@ -33,7 +34,10 @@ export class SocketGateway
 
   @WebSocketServer()
   server: Server;
-  constructor(private readonly socketService: SocketService) {}
+  constructor(
+    private readonly socketService: SocketService,
+    private gameHostService: GameHostService,
+  ) {}
 
   onModuleInit() {
     // this.server.on('connection', (socket) => {
@@ -106,24 +110,40 @@ export class SocketGateway
     return client.id;
   }
 
-  @SubscribeMessage('message')
+  @SubscribeMessage('sendMessage')
   async message(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: BroadcastSocketDto,
   ): Promise<string> {
     this.logger.debug(`${this.message.name} -> `, client.id);
+    const isHost = await this.gameHostService.checkMyRoom({
+      clientId: client.id,
+      roomId: payload.roomId,
+    });
+    if (!isHost) return 'You are not host!';
     const room = await this.socketService.findOne(payload.roomId);
     if (!room) {
       return 'room not found';
     }
     // random 0 to length of clients
-    const random = Math.floor(Math.random() * room.clients.length);
+    const roomClone = room.clients.filter((client) => client.role !== 'host');
+    console.log('roomClone', roomClone);
+
+    const random = Math.floor(Math.random() * roomClone.length);
     console.log('random', random);
 
     // emit each message to each client id
-    for (const [index, clients] of room.clients.entries()) {
-      if (index === random) continue;
-      this.server.to(clients.clientId).emit('onMessage', payload.message);
+    for (const [index, clients] of roomClone.entries()) {
+      if (index === random) {
+        this.server.to(clients.clientId).emit('onMessage', {
+          role: 'spy',
+          message: '',
+        });
+        continue;
+      }
+      this.server
+        .to(clients.clientId)
+        .emit('onMessage', { role: 'player', message: payload.message });
     }
 
     return payload.message;
@@ -172,6 +192,27 @@ export class SocketGateway
       for (const [index, clients] of result.clients.entries()) {
         this.server.to(clients.clientId).emit('onGameStart', resData);
       }
+    }
+    return client.id;
+  }
+
+  @SubscribeMessage('backToWaitingRoom')
+  async backToWaitingRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: BasicSocketDto,
+  ): Promise<string> {
+    const isHost = await this.gameHostService.checkMyRoom({
+      clientId: client.id,
+      roomId: payload.roomId,
+    });
+    if (!isHost) return 'You are not host!';
+    const room = await this.socketService.findOne(payload.roomId);
+    if (!room) {
+      return 'room not found';
+    }
+    const resData = { status: 200, message: 'Back to waiting room', data: null };
+    for (const [index, clients] of room.clients.entries()) {
+      this.server.to(clients.clientId).emit('onBackToWaitingRoom', resData);
     }
     return client.id;
   }
