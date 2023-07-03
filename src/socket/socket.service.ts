@@ -144,4 +144,14 @@ export class SocketService {
     }
     return result;
   }
+
+  //update room status
+  async updateRoomStatus(roomId: string, status: number) {
+    const result = await this.roomModel.findOne({ roomId });
+    if (result) {
+      result.status = status;
+      return await result.save();
+    }
+    return null;
+  }
 }

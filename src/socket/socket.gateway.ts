@@ -210,6 +210,7 @@ export class SocketGateway
     if (!room) {
       return 'room not found';
     }
+    await this.socketService.updateRoomStatus(payload.roomId, 0);
     const resData = { status: 200, message: 'Back to waiting room', data: null };
     for (const [index, clients] of room.clients.entries()) {
       this.server.to(clients.clientId).emit('onBackToWaitingRoom', resData);
