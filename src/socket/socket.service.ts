@@ -7,11 +7,12 @@ import { RoomDB, SocketDB } from '../database/schema/room.schema';
 import { LogService } from '../services/log.service';
 import generateString from '../services/generateString';
 import { GameHostService } from '../game-host/game-host.service';
+import { WebSocketServer } from '@nestjs/websockets';
 
 @Injectable()
 export class SocketService {
   private logger = new LogService(SocketService.name);
-
+  
   constructor(
     @InjectModel(EntityEnum.roomDB) private roomModel: Model<RoomDB>,
     @InjectModel(EntityEnum.socketDB) private socketModel: Model<SocketDB>,
@@ -19,8 +20,11 @@ export class SocketService {
   ) {}
 
   async startGame(clientId: string, roomId: string) {
-    const checkIsHost = await this.gameHostService.checkMyRoom({ clientId: clientId, roomId: roomId,  });
-    if(!checkIsHost) return;
+    const checkIsHost = await this.gameHostService.checkMyRoom({
+      clientId: clientId,
+      roomId: roomId,
+    });
+    if (!checkIsHost) return;
     const result = await this.roomModel.findOne({ roomId });
     if (result) {
       result.status = 1;
@@ -40,7 +44,7 @@ export class SocketService {
       activeAt: new Date(),
     };
     const stringGenerate = generateString();
-    const roomId = "C-B" + stringGenerate;
+    const roomId = 'C-B' + stringGenerate;
     const createRoom = new this.roomModel({
       roomId: roomId,
       clients: [newClient],
@@ -57,25 +61,45 @@ export class SocketService {
       if (clientList.includes(clientId)) {
         return 'you are in this room';
       }
-      result.clients.push({ clientId: clientId, role: 'player', activeAt: new Date() });
+      result.clients.push({
+        clientId: clientId,
+        role: 'player',
+        activeAt: new Date(),
+      });
       return await result.save();
-    }else{
+    } else {
       return null;
     }
   }
 
-  async leave(clientId: string, roomId: string) {
+  async leave(server: Server, clientId: string, roomId: string) {
     const result = await this.roomModel.findOne({ roomId });
     if (result) {
-      console.log(clientId);
       const clientList = result.clients.map((client) => client.clientId);
       if (!clientList.includes(clientId)) {
         console.log('not in room');
         return 'you are not in this room';
       }
+      const isHost = await this.gameHostService.checkMyRoom({
+        clientId: clientId,
+        roomId: roomId,
+      });
       result.clients = result.clients.filter(
         (client) => client.clientId !== clientId,
       );
+      if (isHost) {
+        console.log('host');
+        // emit on host left the game
+        const resData = {
+          status: 200,
+          message: 'The host has left the game!',
+          data: null,
+        };
+        for (const clients of result.clients) {
+          server.to(clients.clientId).emit('onHostLeave', resData);
+        }
+        return await this.roomModel.deleteOne({ roomId });
+      }
       if (result.clients.length === 0) {
         console.log('delete');
 
@@ -130,6 +154,8 @@ export class SocketService {
   }
 
   async ping(clientId: string, roomId: string) {
+    const haveRoom = this.roomModel.findOne({ roomId });
+    if (!haveRoom) return null;
     return await this.roomModel.findOneAndUpdate(
       { roomId, 'clients.clientId': clientId },
       { $set: { 'clients.$.activeAt': new Date() } },

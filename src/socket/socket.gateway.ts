@@ -91,7 +91,7 @@ export class SocketGateway
     @MessageBody() payload: BasicSocketDto,
   ): Promise<string> {
     this.logger.debug(`${this.leave.name} -> `, client.id);
-    this.socketService.leave(client.id, payload.roomId);
+    this.socketService.leave(this.server, client.id, payload.roomId);
     return payload.roomId;
   }
 
@@ -211,7 +211,7 @@ export class SocketGateway
       return 'room not found';
     }
     await this.socketService.updateRoomStatus(payload.roomId, 0);
-    const resData = { status: 200, message: 'Back to waiting room', data: null };
+    const resData = { status: 200, message: 'Back to waiting room!', data: null };
     for (const [index, clients] of room.clients.entries()) {
       this.server.to(clients.clientId).emit('onBackToWaitingRoom', resData);
     }
