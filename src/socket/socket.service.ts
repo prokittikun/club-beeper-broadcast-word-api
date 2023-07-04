@@ -92,7 +92,7 @@ export class SocketService {
   async remove() {
     try {
       setInterval(async () => {
-        this.logger.debug('THIS TIME TO REMOVE');
+        // this.logger.debug('THIS TIME TO REMOVE');
         const result: RoomDB[] = await this.roomModel.find();
         if (result) {
           for (const [index, iterator] of result.entries()) {
