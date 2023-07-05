@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Server } from 'socket.io';
 import { EntityEnum } from '../database/entity';
-import { RoomDB, SocketDB } from '../database/schema/room.schema';
+import { RoomDB } from '../database/schema/room.schema';
 import { LogService } from '../services/log.service';
 import generateString from '../services/generateString';
 import { GameHostService } from '../game-host/game-host.service';
@@ -12,10 +12,9 @@ import { WebSocketServer } from '@nestjs/websockets';
 @Injectable()
 export class SocketService {
   private logger = new LogService(SocketService.name);
-  
+
   constructor(
     @InjectModel(EntityEnum.roomDB) private roomModel: Model<RoomDB>,
-    @InjectModel(EntityEnum.socketDB) private socketModel: Model<SocketDB>,
     private gameHostService: GameHostService,
   ) {}
 

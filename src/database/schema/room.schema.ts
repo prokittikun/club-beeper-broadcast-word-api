@@ -1,14 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-@Schema()
-export class SocketDB extends Document {
-  @Prop({ required: true })
-  clientId: string;
 
-  @Prop({ type: Date, required: true, default: Date.now })
-  activeAt: Date;
-}
 
 // tslint:disable-next-line:max-classes-per-file
 @Schema()
@@ -34,4 +27,3 @@ export class RoomDB extends Document {
 }
 
 export const RoomSchema = SchemaFactory.createForClass(RoomDB);
-export const SocketSchema = SchemaFactory.createForClass(SocketDB);

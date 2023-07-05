@@ -3,7 +3,7 @@ import { BasicBodyDto } from './dto/BasicBodyDto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { EntityEnum } from '../database/entity';
-import { RoomDB, SocketDB } from '../database/schema/room.schema';
+import { RoomDB } from '../database/schema/room.schema';
 import { LogService } from '../services/log.service';
 
 @Injectable()
