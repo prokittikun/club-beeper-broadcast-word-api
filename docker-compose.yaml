@@ -4,6 +4,7 @@ services:
     image: mongo:latest
     ports:
       - 27017:27017
+    restart: unless-stopped
   nestjs:
     build:
       context: .
@@ -14,3 +15,4 @@ services:
       - mongodb
     environment:
       - MONGO_URL=mongodb://mongodb:27017/cb-db?retryWrites=true&w=majority
+    restart: unless-stopped
